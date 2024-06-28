@@ -81,9 +81,7 @@ std::ostream& operator<<(std::ostream& os, Choice choice)
 Result outcome(Choice first, Choice second)
 {
 	if (first == second)
-	{
 		return Result::Draw;
-	}
 	else if ((first == Choice::Rock && second == Choice::Scissors)
 		|| (first == Choice::Paper && second == Choice::Rock)
 		|| (first == Choice::Scissors && second == Choice::Paper))
