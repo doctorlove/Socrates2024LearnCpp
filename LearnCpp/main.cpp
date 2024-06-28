@@ -65,6 +65,12 @@ enum class Choice
 	Scissors,
 };
 
+enum class Result {
+	Draw,
+	FirstWins,
+	SecondWins,
+};
+
 std::ostream& operator<<(std::ostream& os, Choice choice)
 {
 	std::array choice_str{ "Rock", "Paper", "Scissors" };
@@ -72,19 +78,22 @@ std::ostream& operator<<(std::ostream& os, Choice choice)
 	return os;
 }
 
-//constexpr 
-bool first_player_wins(Choice first, Choice second)
+Result outcome(Choice first, Choice second)
 {
-	// Rock beats scissors (and nothing else)
-	// Paper beats rock (and nothing else)
-	// Scissors beats paper (and nothing else)
-	return (first == Choice::Rock && second == Choice::Scissors)
+	if (first == second)
+	{
+		return Result::Draw;
+	}
+	else if ((first == Choice::Rock && second == Choice::Scissors)
 		|| (first == Choice::Paper && second == Choice::Rock)
-		|| (first == Choice::Scissors && second == Choice::Paper);
+		|| (first == Choice::Scissors && second == Choice::Paper))
+		return Result::FirstWins;
+	return Result::SecondWins;
 }
 
 void game()
 {
+	// Extensions: Track winner?
 	std::default_random_engine gen{ std::random_device{}() };
 	std::uniform_int_distribution dist{ 0, 2 };
 
@@ -93,9 +102,10 @@ void game()
 		auto human_choice = static_cast<Choice>(input.value());
 		auto computer_choice = static_cast<Choice>(dist(gen));
 
-		if (first_player_wins(computer_choice, human_choice))
+		auto result = outcome(computer_choice, human_choice);
+		if (result == Result::FirstWins)
 			std::cout << "computer wins: ";
-		else if (first_player_wins(human_choice, computer_choice))
+		else if (result == Result::SecondWins)
 			std::cout << "human wins: ";
 		else
 			std::cout << "Draw\n";
@@ -182,6 +192,20 @@ void tests()
 		std::istringstream iss{ "2 1 0 1 four" };
 		auto got = store_input(iss);
 		assert(got.size() == 4);
+	}
+
+	{
+		assert(outcome(Choice::Rock, Choice::Rock) == Result::Draw);
+		assert(outcome(Choice::Paper, Choice::Paper) == Result::Draw);
+		assert(outcome(Choice::Scissors, Choice::Scissors) == Result::Draw);
+
+		assert(outcome(Choice::Rock, Choice::Paper) == Result::SecondWins);
+		assert(outcome(Choice::Paper, Choice::Scissors) == Result::SecondWins);
+		assert(outcome(Choice::Scissors, Choice::Rock) == Result::SecondWins);
+
+		assert(outcome(Choice::Paper, Choice::Rock) == Result::FirstWins);
+		assert(outcome(Choice::Scissors, Choice::Paper) == Result::FirstWins);
+		assert(outcome(Choice::Rock, Choice::Scissors) == Result::FirstWins);
 	}
 }
 
