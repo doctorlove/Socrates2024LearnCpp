@@ -3,14 +3,16 @@
 #include <array>
 #include <iostream>
 #include <limits>
+#include <map> //extension
 #include <optional>
 #include <print> // might not work for you, so comment out
 #include <random>
+#include <ranges> //extension
 #include <sstream> 
 #include <stdexcept>
 #include <vector>
 
-void show(std::ostream & os, const std::string & words)
+void show(std::ostream& os, const std::string& words)
 {
 	os << words;
 }
@@ -21,19 +23,20 @@ int input(std::istream& is)
 	is >> number;
 	if (!is)
 	{
+		is.clear(); // clear the fail flag (should mop up too)
 		throw std::exception(); //or something else
 	}
 	return number;
 }
 
-std::optional<int> user_choice(std::istream & is)
+std::optional<int> user_choice(std::istream& is)
 {
 	int number{};
 	is >> number;
 	if (is)
 		return number;
-	is.clear();
-	is.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+	is.clear(); // clear the fail flag
+	is.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // mop up too
 	return {};
 }
 
@@ -41,7 +44,7 @@ std::optional<int> zero_one_or_two(std::istream& is)
 {
 	int number{};
 	is >> number;
-	if (is && 0<= number && number<3)
+	if (is && 0 <= number && number < 3)
 		return number;
 	is.clear();
 	is.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
@@ -89,26 +92,60 @@ Result outcome(Choice first, Choice second)
 	return Result::SecondWins;
 }
 
+std::map<Choice, int> make_histogram(const std::vector<Choice>& data)
+{
+	std::map<Choice, int> histogram;
+
+	for (const auto& e : data) ++histogram[e];
+	return histogram;
+}
+
+Choice weighted_choice(const std::vector<Choice>& plays, std::default_random_engine& gen)
+{
+	auto hist = make_histogram(plays);
+	auto probs = std::views::values(hist);
+	std::discrete_distribution<int> weighted_dist(probs.begin(), probs.end());
+	auto index = weighted_dist(gen);
+	return std::ranges::to<std::vector>(std::views::keys(hist))[index];
+}
+
+Choice beats(Choice choice)
+{
+	if (choice == Choice::Rock)
+		return Choice::Paper;
+	else if (choice == Choice::Paper)
+		return Choice::Scissors;
+	else
+		return Choice::Rock;
+}
+
 void game()
 {
 	// Extensions: Track winner?
+	// Any patterns?
+	//std::vector<Choice> plays;// extension
 	std::default_random_engine gen{ std::random_device{}() };
 	std::uniform_int_distribution dist{ 0, 2 };
 
 	while (auto input = zero_one_or_two(std::cin))
 	{
 		auto human_choice = static_cast<Choice>(input.value());
-		auto computer_choice = static_cast<Choice>(dist(gen));
+		//plays.push_back(human_choice);// extension
+
+		 auto computer_choice = static_cast<Choice>(dist(gen));
+		// or extension
+		//auto computer_choice = plays.size() > 2 ?
+		//	beats(weighted_choice(plays, gen))  : static_cast<Choice>(dist(gen));
+
+		std::cout << human_choice << " v. " << computer_choice << ": ";
 
 		auto result = outcome(computer_choice, human_choice);
 		if (result == Result::FirstWins)
-			std::cout << "computer wins: ";
+			std::cout << "computer wins\n";
 		else if (result == Result::SecondWins)
-			std::cout << "human wins: ";
+			std::cout << "human wins\n";
 		else
 			std::cout << "Draw\n";
-
-		std::cout << human_choice << " v. " << computer_choice << '\n';
 	}
 }
 
@@ -193,7 +230,7 @@ void tests()
 	}
 
 	{
-		assert(outcome(Choice::Rock, Choice::Rock) == Result::Draw);
+		assert(outcome(Choice::Rock, Choice::Rock) == Result::Draw); 
 		assert(outcome(Choice::Paper, Choice::Paper) == Result::Draw);
 		assert(outcome(Choice::Scissors, Choice::Scissors) == Result::Draw);
 
@@ -204,6 +241,12 @@ void tests()
 		assert(outcome(Choice::Paper, Choice::Rock) == Result::FirstWins);
 		assert(outcome(Choice::Scissors, Choice::Paper) == Result::FirstWins);
 		assert(outcome(Choice::Rock, Choice::Scissors) == Result::FirstWins);
+	}
+
+	{
+		assert(beats(Choice::Rock) == Choice::Paper);
+		assert(beats(Choice::Paper) == Choice::Scissors);
+		assert(beats(Choice::Scissors) == Choice::Rock);
 	}
 }
 
