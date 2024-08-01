@@ -92,23 +92,6 @@ Result outcome(Choice first, Choice second)
 	return Result::SecondWins;
 }
 
-std::map<Choice, int> make_histogram(const std::vector<Choice>& data)
-{
-	std::map<Choice, int> histogram;
-
-	for (const auto& e : data) ++histogram[e];
-	return histogram;
-}
-
-Choice weighted_choice(const std::vector<Choice>& plays, std::default_random_engine& gen)
-{
-	auto hist = make_histogram(plays);
-	auto probs = std::views::values(hist);
-	std::discrete_distribution<int> weighted_dist(probs.begin(), probs.end());
-	auto index = weighted_dist(gen);
-	return std::ranges::to<std::vector>(std::views::keys(hist))[index];
-}
-
 Choice beats(Choice choice)
 {
 	if (choice == Choice::Rock)
@@ -121,21 +104,13 @@ Choice beats(Choice choice)
 
 void game()
 {
-	// Extensions: Track winner?
-	// Any patterns?
-	//std::vector<Choice> plays;// extension
 	std::default_random_engine gen{ std::random_device{}() };
 	std::uniform_int_distribution dist{ 0, 2 };
 
 	while (auto input = zero_one_or_two(std::cin))
 	{
 		auto human_choice = static_cast<Choice>(input.value());
-		//plays.push_back(human_choice);// extension
-
-		 auto computer_choice = static_cast<Choice>(dist(gen));
-		// or extension
-		//auto computer_choice = plays.size() > 2 ?
-		//	beats(weighted_choice(plays, gen))  : static_cast<Choice>(dist(gen));
+		auto computer_choice = static_cast<Choice>(dist(gen));
 
 		std::cout << human_choice << " v. " << computer_choice << ": ";
 
@@ -146,6 +121,60 @@ void game()
 			std::cout << "human wins\n";
 		else
 			std::cout << "Draw\n";
+	}
+}
+
+Choice weighted_choice(const std::array<int, 3> & choices,
+	std::default_random_engine & gen)
+{
+	static std::uniform_int_distribution dist{ 0, 2 }; // warning some distribs have state, so keep this haning around
+	// It's not needed for a unifrom dist though
+	const auto found = std::ranges::any_of(choices, [](int x) { return x > 0; });
+	if (found)
+	{
+		std::discrete_distribution<int> weighted_dist(choices.begin(), choices.end());
+		return beats(static_cast<Choice>(weighted_dist(gen)));
+	}
+	return static_cast<Choice>(dist(gen));
+}
+
+void game_with_extensions()
+{
+	// We'll find the most common choice and make that more likely
+	// Other Extensions:
+	// Use last n goes only (hint: a vector and std::span)
+	// Are there patterns to play - the internet has some stats method and machine learning approaches
+	// Huamn's aren't very random!
+	std::array<int, 3> choices{};
+	std::default_random_engine gen{ std::random_device{}() };
+	int turns{};
+	int human_wins{};
+
+	while (auto input = zero_one_or_two(std::cin))
+	{
+		++turns;
+		const auto got = input.value();
+		const auto human_choice = static_cast<Choice>(got);
+
+		const auto computer_choice = weighted_choice(choices, gen);
+
+		++choices[got];
+
+		std::cout << human_choice << " v. " << computer_choice << ": ";
+
+		const auto result = outcome(computer_choice, human_choice);
+		// Could write operator<< for a stream here
+		if (result == Result::FirstWins)
+			std::cout << "computer wins\n";
+		else if (result == Result::SecondWins)
+		{
+			std::cout << "human wins\n";
+			++human_wins;
+		}
+		else
+			std::cout << "Draw\n";
+
+		std::cout << "You win " << human_wins << " of " << turns << '\n';
 	}
 }
 
@@ -281,6 +310,7 @@ int main()
 	//}
 
 	std::cout << "Rock (0), paper (1) or scissors (2)?\n";
-	game();
+	//game();
+	game_with_extensions();
 }
 
