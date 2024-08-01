@@ -1,11 +1,12 @@
 #include <cassert>
 
+#include <algorithm>
 #include <array>
 #include <iostream>
 #include <limits>
 #include <map> //extension
 #include <optional>
-#include <print> // might not work for you, so comment out
+//#include <print> // might not work for you, so comment out
 #include <random>
 #include <ranges> //extension
 #include <sstream> 
@@ -77,7 +78,9 @@ enum class Result {
 std::ostream& operator<<(std::ostream& os, Choice choice)
 {
 	std::array choice_str{ "Rock", "Paper", "Scissors" };
-	os << choice_str[std::to_underlying(choice)];
+	// to_underlying may not be avaiable
+	//os << choice_str[std::to_underlying(choice)];
+	os << choice_str[static_cast<int>(choice)];
 	return os;
 }
 
@@ -129,7 +132,10 @@ Choice weighted_choice(const std::array<int, 3> & choices,
 {
 	static std::uniform_int_distribution dist{ 0, 2 }; // warning some distribs have state, so keep this haning around
 	// It's not needed for a unifrom dist though
-	const auto found = std::ranges::any_of(choices, [](int x) { return x > 0; });
+
+	// any_of might not be implemented in older compilers
+	// const auto found = std::ranges::any_of(choices, [](int x) { return x > 0; });
+	const auto found = choices.end() != std::find_if(choices.begin(), choices.end(), [](int x) { return x > 0;});
 	if (found)
 	{
 		std::discrete_distribution<int> weighted_dist(choices.begin(), choices.end());
@@ -281,8 +287,8 @@ void tests()
 
 int main()
 {
-	std::println("Hello, world!");// might not work for you, so comment out
-	std::print("Hello, world!");// might not work for you, so comment out
+//	std::println("Hello, world!");// might not work for you, so comment out
+//	std::print("Hello, world!");// might not work for you, so comment out
 	std::cout << "Hello, world!\n";
 
 	show(std::cout, "Hello, world!\n");
@@ -310,7 +316,7 @@ int main()
 	//}
 
 	std::cout << "Rock (0), paper (1) or scissors (2)?\n";
-	//game();
-	game_with_extensions();
+	game();
+	//game_with_extensions();
 }
 
